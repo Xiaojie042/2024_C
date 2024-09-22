@@ -4,9 +4,9 @@ import numpy as np
 
 
 class MagneticCoreAnalyzer:
-    def __init__(self, file_path,material = 1):
+    def __init__(self, file_path,material_single = 1,mult_material = False):
         self.file_path = file_path
-        self.material = material
+        self.material_single = material_single
         self.test_material = []
         self.temperature = []
         self.frequency = []
@@ -15,23 +15,46 @@ class MagneticCoreAnalyzer:
         self.serial_number = []
         self.flux_density = []
         self.flux_density_peak = []
+        self.mult_material = mult_material
+        if self.mult_material:
+            self.material = []
 
     def read_train_data(self):
         """读取训练Excel表格中的数据，初始化类的各个属性"""
-        # 读取Excel文件，第一行为表头
-        df = pd.read_excel(self.file_path, header=0,
-                           sheet_name=f'材料{self.material}')
+        if not self.mult_material:
+            # 读取Excel文件，第一行为表头
+            df = pd.read_excel(self.file_path, header=0,
+                               sheet_name=f'材料{self.material_single}')
 
-        # 获取相应列的数据
-        self.temperature = df.iloc[:, 0].values  # 第一列: 温度
-        self.frequency = df.iloc[:, 1].values  # 第二列: 频率
-        self.core_loss = df.iloc[:, 2].values  # 第三列: 磁芯损耗值
-        self.waveform_type = df.iloc[:, 3].values  # 第四列: 励磁波形
+            # 获取相应列的数据
+            self.temperature = df.iloc[:, 0].values  # 第一列: 温度
+            self.frequency = df.iloc[:, 1].values  # 第二列: 频率
+            self.core_loss = df.iloc[:, 2].values  # 第三列: 磁芯损耗值
+            self.waveform_type = df.iloc[:, 3].values  # 第四列: 励磁波形
 
-        # 第五列到第1029列是磁通密度的序列
-        self.flux_density = df.iloc[:, 4:1029].values
-        # 计算磁通密度峰值（每一行中的最大绝对值）
-        self.flux_density_peak = np.max(np.abs(self.flux_density), axis=1)
+            # 第五列到第1029列是磁通密度的序列
+            self.flux_density = df.iloc[:, 4:1029].values
+            # 计算磁通密度峰值（每一行中的最大绝对值）
+            self.flux_density_peak = np.max(np.abs(self.flux_density), axis=1)
+        elif self.mult_material:
+            all_sheets = pd.read_excel(self.file_path, sheet_name=None)
+            for sheet_name, df in all_sheets.items():
+                # 存储工作表名称并延长
+                num_rows = df.shape[0]
+                self.material.extend([sheet_name] * num_rows)
+
+                # 获取相应列的数据
+                if df.shape[1] >= 4:  # 确保至少有四列
+                    self.temperature.extend(df.iloc[:, 0].values)  # 温度
+                    self.frequency.extend(df.iloc[:, 1].values)  # 频率
+                    self.core_loss.extend(df.iloc[:, 2].values)  # 磁芯损耗值
+                    self.waveform_type.extend(df.iloc[:, 3].values)  # 励磁波形
+
+                    # 第五列到第1029列是磁通密度的序列
+                    self.flux_density = df.iloc[:, 4:1029].values
+                    # 计算磁通密度峰值（每一行中的最大绝对值）
+                    self.flux_density_peak.extend(np.max(np.abs(self.flux_density), axis=1))
+
     def read_test2_data(self):
         """读取测试集1(附件2)Excel表格中的数据，初始化类的各个属性"""
         # 读取Excel文件，第一行为表头
@@ -128,6 +151,35 @@ class MagneticCoreAnalyzer:
         self.flux_density = [self.flux_density[i] for i in filtered_indices]
         self.flux_density_peak = [self.flux_density_peak[i] for i in filtered_indices]
 
+    def target_encoding_tem(self):
+        # 计算每种温度的平均磁芯损耗
+        temp_to_loss = {}
+        for temp, loss in zip(self.temperature, self.core_loss):
+            if temp not in temp_to_loss:
+                temp_to_loss[temp] = []
+            temp_to_loss[temp].append(loss)
+
+        # 计算均值
+        encoded_temp = []
+        for temp in self.temperature:
+            encoded_temp.append(sum(temp_to_loss[temp]) / len(temp_to_loss[temp]))
+
+        return encoded_temp
+    def target_encoding_wave(self):
+        # 计算每种波形的平均磁芯损耗
+        wave_to_loss = {}
+        for wave, loss in zip(self.waveform_type, self.core_loss):
+            if wave not in wave_to_loss:
+                wave_to_loss[wave] = []
+            wave_to_loss[wave].append(loss)
+
+        # 计算均值
+        encoded_wave = []
+        for wave in self.waveform_type:
+            encoded_wave.append(sum(wave_to_loss[wave]) / len(wave_to_loss[wave]))
+
+        return encoded_wave
+
     def plot_waveforms_with_labels(self,waveform_types, flux_density, colors=None):
         """
           根据波形类型用不同颜色画出波形，并在左上角添加图例标签。
@@ -166,19 +218,19 @@ class MagneticCoreAnalyzer:
 
 if __name__ == '__main__':
     # 使用该函数
-    file_path = './data_ex.xlsx'
+    file_path = './data_test.xlsx'
 
-    analyzer = MagneticCoreAnalyzer(file_path,material=2)
+    analyzer = MagneticCoreAnalyzer(file_path,mult_material = True)
     analyzer.read_train_data()
-    valid_waveforms = ['正弦波', '三角波']
-    valid_temperatures = [25]
-    valid_frequency = [50020]
-
-    # 进行波形类型和温度过滤
-    analyzer.filter_waveform(valid_waveforms)
-    analyzer.filter_temperature(valid_temperatures)
-    analyzer.filter_frequency(valid_frequency)
-    analyzer.filter_flux_density_peak(threshold_low=0.1)
+    # valid_waveforms = ['正弦波', '三角波']
+    # valid_temperatures = [25]
+    # valid_frequency = [50020]
+    #
+    # # 进行波形类型和温度过滤
+    # analyzer.filter_waveform(valid_waveforms)
+    # analyzer.filter_temperature(valid_temperatures)
+    # analyzer.filter_frequency(valid_frequency)
+    # analyzer.filter_flux_density_peak(threshold_low=0.1)
     # analyzer.plot_waveforms_with_labels(analyzer.waveform_type,flux_density=analyzer.flux_density)
 
     print("done")

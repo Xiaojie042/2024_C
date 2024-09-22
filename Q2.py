@@ -309,9 +309,11 @@ def calculate_differences_and_stats(array1, array2):
     arr1 = np.asarray(array1)
     arr2 = np.asarray(array2)
 
-    # 计算差值
+    # 计算差值，以数据值为分母
     differences = abs(arr1 - arr2)
     percentage_differences = (differences / arr1) * 100
+    # 计算差值，以计算值为分母
+    # percentage_differences = (differences / arr2) * 100
     for i in range(len(percentage_differences)):
         if percentage_differences[i] <100:
             percentage_differences_filter.append(percentage_differences[i])
