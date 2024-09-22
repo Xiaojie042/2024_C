@@ -5,8 +5,9 @@ import pandas as pd
 from scipy.optimize import minimize
 # from sklearn.linear_model import LinearRegression
 from scipy.spatial import Delaunay
-from scipy.stats import spearmanr
+from scipy.stats import spearmanr,pearsonr
 import matplotlib.pyplot as plt
+from scipy.linalg import lstsq
 
 
 
@@ -20,11 +21,11 @@ def store_data_by_attributes(analyzer):
         waveform = analyzer.waveform_type[i]
         temp = analyzer.temperature[i]
         #freq = analyzer.frequency[i]
-        #mat = analyzer.material[i]
+        mat = analyzer.material[i]
 
         # 创建命名规则
-        key = f"{waveform}_tem{temp}"
-        #key = f"{waveform}_tem{temp}_mat{mat}_freq{freq}"
+        #key = f"{waveform}_tem{temp}"
+        key = f"{waveform}_tem{temp}_mat{mat}"
 
         # 将数据存储到相应的数组
         if key not in stored_data:
@@ -75,14 +76,36 @@ def filter_and_store(analyzer):
 
     return stored_data
 
+def Fitting_Gaussian_model(core_loss,encoded_temperatures,encoded_wave,encoded_material):
+    # 确保输入为 numpy 数组
+    T = np.array(encoded_temperatures)
+    W = np.array(encoded_wave)
+    M = np.array(encoded_material)
+    P = np.array(core_loss)
+
+    # 构建设计矩阵 X
+    X = np.column_stack((
+        np.ones(len(T)),  # a0
+        T,                # a1 * T
+        W,                # a2 * W
+        M,                # a3 * M
+        T * W,           # a12 * T * W
+        T * M,           # a13 * T * M
+        W * M,           # a23 * W * M
+        T * W * M        # a123 * T * W * M
+    ))
+
+    coefficients, residuals, rank, s = lstsq(X, P)
+
+    return coefficients
 
 
 
 if __name__ == '__main__':
     # 使用该函数
-    file_path = './data_ex.xlsx'
+    file_path = './train_data.xlsx'
 
-    analyzer = dp.MagneticCoreAnalyzer(file_path,material_single=2)
+    analyzer = dp.MagneticCoreAnalyzer(file_path,mult_material=True)
     analyzer.read_train_data()
 
     #valid_temperatures = [25,50]
@@ -100,17 +123,27 @@ if __name__ == '__main__':
 
     encoded_temperatures = analyzer.target_encoding_tem()
     encoded_wave = analyzer.target_encoding_wave()
+    encoded_material = analyzer.target_encoding_material()
+    # print(set(encoded_material))
+    #
+    # correlation, p_value = spearmanr(encoded_material, analyzer.core_loss)
+    #
+    # print("Spearman Correlation Coefficient:", correlation)
+    # print("P-value:", p_value)
+    #
+    # correlation_p, p_value_p = pearsonr(encoded_temperatures, analyzer.core_loss)
+    #
+    # print("pearman Correlation Coefficient:", correlation_p)
+    # print("P-value:", correlation_p)
 
-    correlation, p_value = spearmanr(encoded_wave, analyzer.core_loss)
+    coeffs = Fitting_Gaussian_model(encoded_temperatures=encoded_temperatures,
+                                    encoded_wave=encoded_wave,
+                                    encoded_material=encoded_material,
+                                    core_loss=analyzer.core_loss)
 
-    print("Spearman Correlation Coefficient:", correlation)
-    print("P-value:", p_value)
-
-
-
-
-
-
+    # 输出结果
+    a0, a1, a2, a3, a12, a13, a23, a123 = coeffs
+    print(f"Coefficients:\na0: {a0}\na1: {a1}\na2: {a2}\na3: {a3}\na12: {a12}\na13: {a13}\na23: {a23}\na123: {a123}")
 
     # fig, axs = plt.subplots(2, 2, figsize=(15, 8))
     #

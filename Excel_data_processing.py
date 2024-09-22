@@ -51,7 +51,7 @@ class MagneticCoreAnalyzer:
                     self.waveform_type.extend(df.iloc[:, 3].values)  # 励磁波形
 
                     # 第五列到第1029列是磁通密度的序列
-                    self.flux_density = df.iloc[:, 4:1029].values
+                    self.flux_density.extend(df.iloc[:, 4:1029].values)
                     # 计算磁通密度峰值（每一行中的最大绝对值）
                     self.flux_density_peak.extend(np.max(np.abs(self.flux_density), axis=1))
 
@@ -151,6 +151,21 @@ class MagneticCoreAnalyzer:
         self.flux_density = [self.flux_density[i] for i in filtered_indices]
         self.flux_density_peak = [self.flux_density_peak[i] for i in filtered_indices]
 
+    def filter_material(self, valid_material,train_data = True):
+        """根据给定的波形类型滤除不满足条件的行"""
+        filtered_indices = [i for i in range(len(self.material)) if self.material[i] in valid_material]
+        if not train_data:
+            self.serial_number = [self.serial_number[i] for i in filtered_indices]
+            self.test_material = [self.test_material[i] for i in filtered_indices]
+        self.temperature = [self.temperature[i] for i in filtered_indices]
+        self.frequency = [self.frequency[i] for i in filtered_indices]
+        self.core_loss = [self.core_loss[i] for i in filtered_indices]
+        self.waveform_type = [self.waveform_type[i] for i in filtered_indices]
+        self.flux_density = [self.flux_density[i] for i in filtered_indices]
+        self.flux_density_peak = [self.flux_density_peak[i] for i in filtered_indices]
+        self.material = [self.material[i] for i in filtered_indices]
+
+
     def target_encoding_tem(self):
         # 计算每种温度的平均磁芯损耗
         temp_to_loss = {}
@@ -179,6 +194,21 @@ class MagneticCoreAnalyzer:
             encoded_wave.append(sum(wave_to_loss[wave]) / len(wave_to_loss[wave]))
 
         return encoded_wave
+
+    def target_encoding_material(self):
+        # 计算每种材料的平均磁芯损耗
+        material_to_loss = {}
+        for material, loss in zip(self.material, self.core_loss):
+            if material not in material_to_loss:
+                material_to_loss[material] = []
+            material_to_loss[material].append(loss)
+
+        # 计算均值
+        encoded_material = []
+        for material in self.material:
+            encoded_material.append(sum(material_to_loss[material]) / len(material_to_loss[material]))
+
+        return encoded_material
 
     def plot_waveforms_with_labels(self,waveform_types, flux_density, colors=None):
         """
@@ -225,12 +255,14 @@ if __name__ == '__main__':
     # valid_waveforms = ['正弦波', '三角波']
     # valid_temperatures = [25]
     # valid_frequency = [50020]
-    #
+    valid_material = ['材料2']
+
     # # 进行波形类型和温度过滤
     # analyzer.filter_waveform(valid_waveforms)
     # analyzer.filter_temperature(valid_temperatures)
     # analyzer.filter_frequency(valid_frequency)
     # analyzer.filter_flux_density_peak(threshold_low=0.1)
+    analyzer.filter_material(valid_material)
     # analyzer.plot_waveforms_with_labels(analyzer.waveform_type,flux_density=analyzer.flux_density)
 
     print("done")
