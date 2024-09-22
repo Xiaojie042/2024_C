@@ -99,6 +99,35 @@ class MagneticCoreAnalyzer:
         self.flux_density = [self.flux_density[i] for i in filtered_indices]
         self.flux_density_peak = [self.flux_density_peak[i] for i in filtered_indices]
 
+    def filter_frequency(self, valid_frequency,train_data = True):
+        """根据给定的频率类型滤除不满足条件的行"""
+        filtered_indices = [i for i in range(len(self.frequency)) if self.frequency[i] in valid_frequency]
+        if not train_data:
+            self.serial_number = [self.serial_number[i] for i in filtered_indices]
+            self.test_material = [self.test_material[i] for i in filtered_indices]
+        self.temperature = [self.temperature[i] for i in filtered_indices]
+        self.frequency = [self.frequency[i] for i in filtered_indices]
+        self.core_loss = [self.core_loss[i] for i in filtered_indices]
+        self.waveform_type = [self.waveform_type[i] for i in filtered_indices]
+        self.flux_density = [self.flux_density[i] for i in filtered_indices]
+        self.flux_density_peak = [self.flux_density_peak[i] for i in filtered_indices]
+
+    def filter_flux_density_peak(self, threshold_low,threshold_high = 1, train_data = True):
+        """根据阈值滤除不满足条件的行"""
+        filtered_indices = [
+            i for i in range(len(self.flux_density_peak))
+            if (self.flux_density_peak[i] > threshold_low and self.flux_density_peak[i] < threshold_high)
+        ]
+        if not train_data:
+            self.serial_number = [self.serial_number[i] for i in filtered_indices]
+            self.test_material = [self.test_material[i] for i in filtered_indices]
+        self.temperature = [self.temperature[i] for i in filtered_indices]
+        self.frequency = [self.frequency[i] for i in filtered_indices]
+        self.core_loss = [self.core_loss[i] for i in filtered_indices]
+        self.waveform_type = [self.waveform_type[i] for i in filtered_indices]
+        self.flux_density = [self.flux_density[i] for i in filtered_indices]
+        self.flux_density_peak = [self.flux_density_peak[i] for i in filtered_indices]
+
     def plot_waveforms_with_labels(self,waveform_types, flux_density, colors=None):
         """
           根据波形类型用不同颜色画出波形，并在左上角添加图例标签。
@@ -137,16 +166,19 @@ class MagneticCoreAnalyzer:
 
 if __name__ == '__main__':
     # 使用该函数
-    file_path = './data_ex.xlsx'  # 替换为你的Excel文件路径
+    file_path = './data_ex.xlsx'
 
-    analyzer = MagneticCoreAnalyzer(file_path,material=1)
+    analyzer = MagneticCoreAnalyzer(file_path,material=2)
     analyzer.read_train_data()
     valid_waveforms = ['正弦波', '三角波']
-    valid_temperatures = [ 50, 70, 90]
+    valid_temperatures = [25]
+    valid_frequency = [50020]
 
     # 进行波形类型和温度过滤
     analyzer.filter_waveform(valid_waveforms)
     analyzer.filter_temperature(valid_temperatures)
+    analyzer.filter_frequency(valid_frequency)
+    analyzer.filter_flux_density_peak(threshold_low=0.1)
     # analyzer.plot_waveforms_with_labels(analyzer.waveform_type,flux_density=analyzer.flux_density)
 
     print("done")
