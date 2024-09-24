@@ -4,9 +4,10 @@ import numpy as np
 from scipy.optimize import minimize
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
 
 
-compare = True
+compare = False
 def stanley_metz_objective_residual(variables, f_data, B_data, p_data):
     x, y, z = variables
     # 计算残差,通过残差的方法拟合出来一个近似值
@@ -252,6 +253,63 @@ def solve_stanley_metz_only_mult_Tindex(f_data, B_data, p_data, T_data):
 
 
 
+# def log_model(f, B, T, log_x, log_y, log_z, log_t):
+#     return log_x + log_y * np.log(f) + log_z * np.log(B) + log_t * np.log(T)
+#
+# def fit_data(f_data, B_data, T_data, p_data):
+#     # 定义适应 curve_fit 的模型
+#     def fit_model(data, log_x, log_y, log_z, log_t):
+#         f_data, B_data, T_data = data
+#         return log_model(f_data, B_data, T_data, log_x, log_y, log_z, log_t)
+#
+#     # 初始参数猜测
+#     initial_guess = (0, 0, 0, 0)  # log_x, log_y, log_z, log_t 的初始猜测
+#
+#     # 使用 curve_fit 进行拟合
+#     popt, pcov = curve_fit(fit_model, (f_data, B_data, T_data), np.log(p_data), p0=initial_guess)
+#
+#     return popt, pcov  # 返回拟合的参数和协方差
+# def model(f, B, T, x, y, z, t0, t1):
+#     return x * (f ** y) * (B ** z) * (t0 + t1 / T)
+#
+# def fit_data(f_data, B_data, T_data, p_data):
+#     # 定义适应 curve_fit 的模型
+#     def fit_model(data, x, y, z, t0, t1):
+#         f_data, B_data, T_data = data
+#         return model(f_data, B_data, T_data, x, y, z, t0, t1)
+#
+#     # 初始参数猜测
+#     initial_guess = (1, 1, 1, 1, 1)  # x, y, z, t0, t1 的初始猜测
+#
+#     # 设置参数的取值范围
+#     # bounds = (
+#     #     [-np.inf, 1, 2, -np.inf, -np.inf],  # 下限
+#     #     [np.inf, 3, 3, np.inf, np.inf]      # 上限
+#     # )
+
+    # 使用 curve_fit 进行拟合
+    popt, pcov = curve_fit(fit_model, (f_data, B_data, T_data), p_data, p0=initial_guess)
+
+    return popt, pcov  # 返回拟合的参数和协方差
+
+
+
+def model(x, f, B, T):
+    return x[0] * (f ** x[1]) * (B ** x[2]) * (T ** x[3])
+
+# 定义目标函数：计算 M 的平方和以进行最小化
+def objective_function(params, f_data, B_data, T_data, P_data):
+    M = model(params, f_data, B_data, T_data) - P_data
+    return np.sum(M ** 2)  # 返回平方和
+
+def fit_data(f_data, B_data, T_data, P_data):
+    # 初始参数猜测
+    initial_guess = [22, 1.3, 2, -1]  # x, y, z, t 的初始猜测
+
+    # 使用 minimize 函数进行优化
+    result = minimize(objective_function, initial_guess, args=(f_data, B_data, T_data, P_data))
+
+    return result.x
 
 
 def cal_core_loss(x,y,z,f,B):
@@ -318,6 +376,7 @@ def calculate_differences_and_stats(array1, array2):
         if percentage_differences[i] <100:
             percentage_differences_filter.append(percentage_differences[i])
 
+
     return differences,percentage_differences_filter
 
 
@@ -325,12 +384,15 @@ if __name__ == '__main__':
     # 使用该函数
     file_path = './data_ex.xlsx'
 
-    analyzer = dp.MagneticCoreAnalyzer(file_path,material=1)
+    analyzer = dp.MagneticCoreAnalyzer(file_path,material_single=1)
     analyzer.read_train_data()
     # valid_temperatures = [90]
     # valid_frequency = [112160]
     # valid_flux_density_peak = [0.2]
     peak_mean = np.mean(analyzer.flux_density_peak)
+
+    valid_waveforms = ['正弦波']
+    analyzer.filter_waveform(valid_waveforms)
 
     # analyzer.filter_temperature(valid_temperatures)
     #analyzer.filter_frequency(valid_frequency)
@@ -348,10 +410,10 @@ if __name__ == '__main__':
         #                               f=analyzer.frequency,
         #                               B=analyzer.flux_density_peak
         #                               )
-        cal_core_loss_tem_array = cal_core_loss_tem(x=20.845014314426773,
-                                      y=1.302887917402657,
-                                      z=2.0548809285088545,
-                                      t1=-0.6198901519350334,
+        cal_core_loss_tem_array = cal_core_loss_tem(x=22.09497076,
+                                      y=1.30016076,
+                                      z=2.06035794,
+                                      t1=-0.61998557,
                                       f=analyzer.frequency,
                                       B=analyzer.flux_density_peak,
                                       T=analyzer.temperature,
@@ -372,6 +434,7 @@ if __name__ == '__main__':
         print(np.max(per_dif_tem))
         print(np.mean(per_dif_tem))
         print(np.var(per_dif_tem))
+
 
         # dif_tem2, per_dif_tem2 = calculate_differences_and_stats(array2=cal_core_loss_tem2_array,array1=analyzer.core_loss)
         # # dif_min, per_dif_min = calculate_differences_and_stats(array2=cal_core_loss_min_array,array1=analyzer.core_loss)
@@ -421,25 +484,48 @@ if __name__ == '__main__':
         # plt.tight_layout()
         # plt.show()
 
+    valid_waveforms = ['正弦波']
+    analyzer.filter_waveform(valid_waveforms)
+    f_data = np.array(analyzer.frequency)
+    B_data = np.array(analyzer.flux_density_peak)
+    p_data = np.array(analyzer.core_loss)
+    T_data = np.array(analyzer.temperature)
+    coefficients, covariance = fit_data(f_data, B_data, T_data, p_data)
+    print("拟合的系数:", coefficients)
+
+    plt.scatter(f_data, p_data, label='数据', color='blue', alpha=0.5)
+
+    optimized_params = fit_data(f_data, B_data, T_data, p_data)
+    print("优化后的系数:", optimized_params)
+
+    # 计算优化后的 M 值
+    M_optimized = model(optimized_params, f_data, B_data, T_data) - p_data
+    print("最小化后的 M 值:", np.sum(M_optimized ** 2))
 
 
-    f_data = np.array(analyzer.frequency)  # f 的实验数据
-    B_data = np.array(analyzer.flux_density_peak)  # B 的实验数据
-    p_data = np.array(analyzer.core_loss)  # P 的实验数据
-    T_data = np.array(analyzer.temperature)  # P 的实验数据
+    # 生成拟合值
+    # f_fit = f_data
+    # B_fit = np.mean(B_data)  # 使用均值作为示例
+    # T_fit = np.mean(T_data)  # 使用均值作为示例
+    # p_fit = model(f_fit, B_fit, T_fit, *coefficients)
+    # plt.plot(f_fit, p_fit, label='拟合曲线', color='red')
+    # plt.xlabel('频率')
+    # plt.ylabel('磁芯损耗')
+    # plt.legend()
+    # plt.show()
 
-    solution = solve_stanley_metz_tem_t0_sum_t1T(f_data, B_data, p_data,T_data)
-    k, a, b, t0 ,t1 = solution
-
-    # solution = solve_stanley_metz_t0_dif_t1T_sum_t2T2(f_data, B_data, p_data,T_data)
-    # k_1, a_1, b_1, t0_1 ,t1_1 ,t2_1= solution
-
-    solution = solve_stanley_metz_only_mult_Tindex(f_data, B_data, p_data,T_data)
-    k_1, a_1, b_1,t1_1 = solution
-
-    print(f"解得: k = {k}, a = {a}, b = {b}, t0 = {t0}, t1 = {t1}")
-    #print(f"解得: k = {k_1}, a = {a_1}, b = {b_1}, t0 = {t0_1}, t1 = {t1_1}, t2 = {t2_1}")
-   # print(f"解得: k = {k_1}, a = {a_1}, b = {b_1}, t0 = {t0_1}, t1 = {t1_1},")
-    print(f"解得: k = {k_1}, a = {a_1}, b = {b_1}, t1 = {t1_1},")
-
-    print("done")
+   #  solution = solve_stanley_metz_tem_t0_sum_t1T(f_data, B_data, p_data,T_data)
+   #  k, a, b, t0 ,t1 = solution
+   #
+   #  # solution = solve_stanley_metz_t0_dif_t1T_sum_t2T2(f_data, B_data, p_data,T_data)
+   #  # k_1, a_1, b_1, t0_1 ,t1_1 ,t2_1= solution
+   #
+   #  solution = solve_stanley_metz_only_mult_Tindex(f_data, B_data, p_data,T_data)
+   #  k_1, a_1, b_1,t1_1 = solution
+   #
+   #  print(f"解得: k = {k}, a = {a}, b = {b}, t0 = {t0}, t1 = {t1}")
+   #  #print(f"解得: k = {k_1}, a = {a_1}, b = {b_1}, t0 = {t0_1}, t1 = {t1_1}, t2 = {t2_1}")
+   # # print(f"解得: k = {k_1}, a = {a_1}, b = {b_1}, t0 = {t0_1}, t1 = {t1_1},")
+   #  print(f"解得: k = {k_1}, a = {a_1}, b = {b_1}, t1 = {t1_1},")
+   #
+   #  print("done")

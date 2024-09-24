@@ -15,6 +15,7 @@ class MagneticCoreAnalyzer:
         self.serial_number = []
         self.flux_density = []
         self.flux_density_peak = []
+        self.flux_density_min = []
         self.mult_material = mult_material
         if self.mult_material:
             self.material = []
@@ -35,7 +36,9 @@ class MagneticCoreAnalyzer:
             # 第五列到第1029列是磁通密度的序列
             self.flux_density = df.iloc[:, 4:1029].values
             # 计算磁通密度峰值（每一行中的最大绝对值）
-            self.flux_density_peak = np.max(np.abs(self.flux_density), axis=1)
+            self.flux_density_peak = np.max(self.flux_density, axis=1)
+
+            self.flux_density_min = np.min(self.flux_density, axis=1)
         elif self.mult_material:
             all_sheets = pd.read_excel(self.file_path, sheet_name=None)
             for sheet_name, df in all_sheets.items():
@@ -50,10 +53,12 @@ class MagneticCoreAnalyzer:
                     self.core_loss.extend(df.iloc[:, 2].values)  # 磁芯损耗值
                     self.waveform_type.extend(df.iloc[:, 3].values)  # 励磁波形
 
+                    flux_density = df.iloc[:, 4:1029].values
                     # 第五列到第1029列是磁通密度的序列
                     self.flux_density.extend(df.iloc[:, 4:1029].values)
                     # 计算磁通密度峰值（每一行中的最大绝对值）
-                    self.flux_density_peak.extend(np.max(np.abs(self.flux_density), axis=1))
+                    self.flux_density_peak.extend(np.max(flux_density, axis=1))
+                    self.flux_density_min.extend(np.min(self.flux_density, axis=1))
 
     def read_test2_data(self):
         """读取测试集1(附件2)Excel表格中的数据，初始化类的各个属性"""
@@ -79,13 +84,13 @@ class MagneticCoreAnalyzer:
         self.serial_number = df.iloc[:, 0].values  # 第一列: 样本序号
         self.frequency = df.iloc[:, 1].values  # 第二列: 温度
         self.core_loss = df.iloc[:, 2].values  # 第三列: 频率
-        self.test_material = df.iloc[:, 3].values  # 第四列: 磁芯材料
+        self.material = df.iloc[:, 3].values  # 第四列: 磁芯材料
         self.waveform_type = df.iloc[:, 4].values  # 第四列: 波形种类
 
         # 第五列到第1029列是磁通密度的序列
         self.flux_density = df.iloc[:, 4:1030].values
         # 计算磁通密度峰值（每一行中的最大绝对值）
-        self.flux_density_peak = np.max(np.abs(self.flux_density), axis=1)
+        self.flux_density_peak = np.max(self.flux_density, axis=1)
 
     def display_results(self):
         """显示读取和处理后的数据摘要"""
@@ -178,6 +183,7 @@ class MagneticCoreAnalyzer:
         encoded_temp = []
         for temp in self.temperature:
             encoded_temp.append(sum(temp_to_loss[temp]) / len(temp_to_loss[temp]))
+            #encoded_temp.append(1)
 
         return encoded_temp
     def target_encoding_wave(self):
@@ -255,14 +261,14 @@ if __name__ == '__main__':
     # valid_waveforms = ['正弦波', '三角波']
     # valid_temperatures = [25]
     # valid_frequency = [50020]
-    valid_material = ['材料2']
+    #valid_material = ['材料2']
 
     # # 进行波形类型和温度过滤
     # analyzer.filter_waveform(valid_waveforms)
     # analyzer.filter_temperature(valid_temperatures)
     # analyzer.filter_frequency(valid_frequency)
     # analyzer.filter_flux_density_peak(threshold_low=0.1)
-    analyzer.filter_material(valid_material)
+    #analyzer.filter_material(valid_material)
     # analyzer.plot_waveforms_with_labels(analyzer.waveform_type,flux_density=analyzer.flux_density)
 
     print("done")
