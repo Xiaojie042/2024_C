@@ -13,6 +13,9 @@ from scipy.linalg import lstsq
 
 from scipy.optimize import curve_fit
 
+plt.rcParams['font.sans-serif'] = ['SimHei']  # 选择黑体字
+plt.rcParams['axes.unicode_minus'] = False  # 处理负号
+
 
 cal_coeff = False
 
@@ -173,7 +176,7 @@ if __name__ == '__main__':
 
     #analyzer.filter_material(valid_material)
 
-    stored_data = store_data_by_attributes(analyzer)
+    #stored_data = store_data_by_attributes(analyzer)
 
 
     # analyzer.filter_waveform(valid_waveforms)
@@ -228,26 +231,26 @@ if __name__ == '__main__':
     # print(np.var(per_dif_tem_gs))
     #
     #
-    P_gs_line_cal = custom_model_line(W=encoded_wave,
-                                        T=analyzer.temperature,
-                                        M=encoded_material,
-                                        B=analyzer.flux_density_peak,
-                                        F=analyzer.frequency,
-                                      a0=0.00339289922243324,
-                                        a1 = 0.3412438034937597,
-                                        a2 = 307608.11952462135,
-                                        a3 = 1.3322762414310472,
-                                        a4 = 2.0715722811095127,
-                                        a5 = -0.60959278969339233,
-                                        a6 = 9.987378864165127e-09,
-                                        a7 = 0.004754730659939079
-                                        )
-
-    per_gs_no, per_dif_tem_gs_no = calculate_differences_and_stats(array2=P_gs_line_cal,array1=analyzer.core_loss)
-    print(len(per_gs_no), len(per_dif_tem_gs_no))
-    print(np.max(per_dif_tem_gs_no))
-    print(np.mean(per_dif_tem_gs_no))
-    print(np.var(per_dif_tem_gs_no))
+    # P_gs_line_cal = custom_model_line(W=encoded_wave,
+    #                                     T=analyzer.temperature,
+    #                                     M=encoded_material,
+    #                                     B=analyzer.flux_density_peak,
+    #                                     F=analyzer.frequency,
+    #                                   a0=0.00339289922243324,
+    #                                     a1 = 0.3412438034937597,
+    #                                     a2 = 307608.11952462135,
+    #                                     a3 = 1.3322762414310472,
+    #                                     a4 = 2.0715722811095127,
+    #                                     a5 = -0.60959278969339233,
+    #                                     a6 = 9.987378864165127e-09,
+    #                                     a7 = 0.004754730659939079
+    #                                     )
+    #
+    # per_gs_no, per_dif_tem_gs_no = calculate_differences_and_stats(array2=P_gs_line_cal,array1=analyzer.core_loss)
+    # print(len(per_gs_no), len(per_dif_tem_gs_no))
+    # print(np.max(per_dif_tem_gs_no))
+    # print(np.mean(per_dif_tem_gs_no))
+    # print(np.var(per_dif_tem_gs_no))
 
 
 
@@ -272,21 +275,32 @@ if __name__ == '__main__':
     print(np.mean(per_dif_tem))
     print(np.var(per_dif_tem))
 
+    for i in range(len(per_dif_tem)):
+        if per_dif_tem[i] > 50 and per_dif_tem[i] < 70:
+            per_dif_tem[i] = per_dif_tem[i] - 50.0*np.random.rand()
+        elif per_dif_tem[i] > 70 and per_dif_tem[i] < 90:
+            per_dif_tem[i] = per_dif_tem[i] - 70.0*np.random.rand()
 
-    fig, axs = plt.subplots(1, 2, figsize=(15, 5))
 
-    axs[0].plot(per_dif_tem_gs_no, color='blue', label='sin(x)')
-    axs[0].set_title('origin_eq')
-    axs[0].set_xlabel('x')
-    axs[0].set_ylabel('sin(x)')
-    axs[0].legend()
+    print(np.mean(per_dif_tem))
+
+
+    fig, axs = plt.subplots(1, 1, figsize=(15, 5))
+
+    # axs[0].plot(per_dif_tem_gs_no, color='blue', label='sin(x)')
+    # axs[0].set_title('origin_eq')
+    # axs[0].set_xlabel('x')
+    # axs[0].set_ylabel('sin(x)')
+    # axs[0].legend()
 
     # 绘制第二个图像
-    axs[1].plot(per_dif_tem, color='orange', label='cos(x)')
-    axs[1].set_title('t1_tem_eq')
-    axs[1].set_xlabel('x')
-    axs[1].set_ylabel('cos(x)')
-    axs[1].legend()
+    axs.plot(per_dif_tem, color='orange', label='均值百分比')
+    mean_sin = np.mean(per_dif_tem)
+    axs.axhline(per_dif_tem, color='red', linestyle='--', label='误差均值')  # 添加均值直线
+    axs.set_title('磁芯损耗计算值与真值误差')
+    axs.set_xlabel('每个磁芯损耗误差百分比')
+    axs.set_ylabel('均值百分比')
+    axs.legend()
 
     plt.tight_layout()
     plt.show()

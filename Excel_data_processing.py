@@ -56,13 +56,11 @@ class MagneticCoreAnalyzer:
                     flux_density = df.iloc[:, 4:1029].values
                     # 第五列到第1029列是磁通密度的序列
                     self.flux_density.extend(df.iloc[:, 4:1029].values)
-                    # 计算磁通密度峰值（每一行中的最大绝对值）
+
                     self.flux_density_peak.extend(np.max(flux_density, axis=1))
                     self.flux_density_min.extend(np.min(self.flux_density, axis=1))
 
     def read_test2_data(self):
-        """读取测试集1(附件2)Excel表格中的数据，初始化类的各个属性"""
-        # 读取Excel文件，第一行为表头
         df = pd.read_excel(self.file_path, header=0)
 
         # 获取相应列的数据
@@ -76,29 +74,29 @@ class MagneticCoreAnalyzer:
         # 计算磁通密度峰值（每一行中的最大绝对值）
         self.flux_density_peak = np.max(np.abs(self.flux_density), axis=1)
     def read_test3_data(self):
-        """读取测试集2(附件3)Excel表格中的数据，初始化类的各个属性"""
         # 读取Excel文件，第一行为表头
         df = pd.read_excel(self.file_path, header=0)
 
         # 获取相应列的数据
         self.serial_number = df.iloc[:, 0].values  # 第一列: 样本序号
-        self.frequency = df.iloc[:, 1].values  # 第二列: 温度
-        self.core_loss = df.iloc[:, 2].values  # 第三列: 频率
+        self.temperature = df.iloc[:, 1].values  # 第二列: 温度
+        self.frequency = df.iloc[:, 2].values  # 第三列: 频率
         self.material = df.iloc[:, 3].values  # 第四列: 磁芯材料
         self.waveform_type = df.iloc[:, 4].values  # 第四列: 波形种类
 
         # 第五列到第1029列是磁通密度的序列
-        self.flux_density = df.iloc[:, 4:1030].values
+        self.flux_density = df.iloc[:, 5:1030].values
         # 计算磁通密度峰值（每一行中的最大绝对值）
         self.flux_density_peak = np.max(self.flux_density, axis=1)
 
-    def display_results(self):
-        """显示读取和处理后的数据摘要"""
-        for i in range(len(self.temperature)):
-            print(f"Temperature: {self.temperature[i]}°C, Frequency: {self.frequency[i]} Hz")
-            print(f"Core Loss: {self.core_loss[i]}, Exciting waveform_type: {self.exciting_waveform_type[i]}")
-            print(f"Peak Flux Density: {self.flux_density_peak[i]}")
-            print("-" * 50)
+    def modify_temperatures(self, temperature_map):
+        self.temperature = [temperature_map.get(temp, temp) for temp in self.temperature]
+
+    def modify_waveform(self, waveform_map):
+        self.waveform_type = [waveform_map.get(temp, temp) for temp in self.waveform_type]
+
+    def modify_material(self, material_map):
+        self.material = [material_map.get(temp, temp) for temp in self.material]
 
 
     def filter_waveform(self, valid_waveforms,train_data = True):
@@ -217,13 +215,6 @@ class MagneticCoreAnalyzer:
         return encoded_material
 
     def plot_waveforms_with_labels(self,waveform_types, flux_density, colors=None):
-        """
-          根据波形类型用不同颜色画出波形，并在左上角添加图例标签。
-
-          参数:
-          waveforms (list): 波形的类型列表，例如 ['正弦波', '三角波', '梯形波']
-          flux_density (2D array): 对应的磁通密度序列（每一行是一个波形的磁通密度数据）
-          """
         colors = {
             '正弦波': 'b',  # 蓝色
             '三角波': 'g',  # 绿色
@@ -254,10 +245,11 @@ class MagneticCoreAnalyzer:
 
 if __name__ == '__main__':
     # 使用该函数
-    file_path = './data_test.xlsx'
+    file_path = './test3.xlsx'
 
     analyzer = MagneticCoreAnalyzer(file_path,mult_material = True)
-    analyzer.read_train_data()
+    #analyzer.read_train_data()
+    analyzer.read_test3_data()
     # valid_waveforms = ['正弦波', '三角波']
     # valid_temperatures = [25]
     # valid_frequency = [50020]
@@ -270,5 +262,29 @@ if __name__ == '__main__':
     # analyzer.filter_flux_density_peak(threshold_low=0.1)
     #analyzer.filter_material(valid_material)
     # analyzer.plot_waveforms_with_labels(analyzer.waveform_type,flux_density=analyzer.flux_density)
+
+    temperature_map = {
+        25: 236659,
+        50: 202175,
+        70: 178606,
+        90: 175966,
+    }
+    waveform_map = {
+        '正弦波': 87594,
+        '三角波': 246819,
+        '梯形波': 262200,
+    }
+    material_map = {
+        '材料1': 179886,
+        '材料2': 234317,
+        '材料3': 264453,
+        '材料4': 109469,
+    }
+
+    analyzer.modify_temperatures(temperature_map)
+    analyzer.modify_waveform(waveform_map)
+    analyzer.modify_material(material_map)
+
+
 
     print("done")

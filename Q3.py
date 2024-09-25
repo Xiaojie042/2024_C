@@ -135,7 +135,7 @@ def fitting_custom_model(core_loss, encoded_wave, encoded_frequency, encoded_mat
         maxfev=100000
     )
 
-    return popt  # 返回拟合参数
+    return popt
 
 # 示例调用
 # core_loss, encoded_wave, encoded_frequency, encoded_material, encoded_temperature 需要定义
@@ -214,18 +214,18 @@ if __name__ == '__main__':
     #analyzer.filter_material(valid_material)
 
     stored_data = store_data_by_attributes(analyzer)
-    # 进行波形类型和温度过滤
-    analyzer.filter_waveform(valid_waveforms)
-    analyzer.filter_temperature(valid_temperatures)
+    # # 进行波形类型和温度过滤
+    # analyzer.filter_waveform(valid_waveforms)
+    # analyzer.filter_temperature(valid_temperatures)
     #analyzer.filter_frequency(valid_frequency)
     #analyzer.filter_flux_density_peak(threshold_low=0.1)
     # valid_temperatures = [25,50,70,90]
-    analyzer.filter_temperature(valid_temperatures)
+    # analyzer.filter_temperature(valid_temperatures)
     #print(np.max(analyzer.frequency))
 
-    # encoded_temperatures = analyzer.target_encoding_tem()
-    # encoded_wave = analyzer.target_encoding_wave()
-    # encoded_material = analyzer.target_encoding_material()
+    encoded_temperatures = analyzer.target_encoding_tem()
+    encoded_wave = analyzer.target_encoding_wave()
+    encoded_material = analyzer.target_encoding_material()
     # print(set(encoded_material))
     # print(set(encoded_wave))
     # print(set(encoded_temperatures))
@@ -303,47 +303,45 @@ if __name__ == '__main__':
     # print(np.max(per_dif_tem_gs_no))
     # print(np.mean(per_dif_tem_gs_no))
     # print(np.var(per_dif_tem_gs_no))
+
+    P_cal = custom_model(W=encoded_wave,
+                         F=analyzer.frequency,
+                         B=analyzer.flux_density_peak,
+                         T=analyzer.temperature,
+                         M=encoded_material,
+                        a0=0.002539227305716865,
+                        a1=0.0014445108854908575,
+                        a2=-1.007350084588356,
+                        a3=1.3314822318918627,
+                        a4=2.0707236371873523,
+                        a5=-1925.1004499526096,
+                        a6=0.018620155914894392,
+                        a7=1.2344098617520405,
+                        a8=10065457.42370792
+                         )
+    dif_tem, per_dif_tem = calculate_differences_and_stats(array2=P_cal,array1=analyzer.core_loss)
+    print(len(dif_tem), len(per_dif_tem))
+    print(np.max(per_dif_tem))
+    print(np.mean(per_dif_tem))
+    print(np.var(per_dif_tem))
     #
-    #
-    #
-    # P_cal = custom_model(W=encoded_wave,
-    #                      F=analyzer.frequency,
-    #                      B=analyzer.flux_density_peak,
-    #                      T=encoded_temperatures,
-    #                      M=encoded_material,
-    #                     a0=0.002539227305716865,
-    #                     a1=0.0014445108854908575,
-    #                     a2=-1.007350084588356,
-    #                     a3=1.3314822318918627,
-    #                     a4=2.0707236371873523,
-    #                     a5=-1925.1004499526096,
-    #                     a6=0.018620155914894392,
-    #                     a7=1.2344098617520405,
-    #                     a8=10065457.42370792
-    #                      )
-    # dif_tem, per_dif_tem = calculate_differences_and_stats(array2=P_cal,array1=analyzer.core_loss)
-    # print(len(dif_tem), len(per_dif_tem))
-    # print(np.max(per_dif_tem))
-    # print(np.mean(per_dif_tem))
-    # print(np.var(per_dif_tem))
-    #
-    # fig, axs = plt.subplots(1, 2, figsize=(15, 5))
-    #
+    fig, axs = plt.subplots(1, 2, figsize=(15, 5))
+
     # axs[0].plot(per_dif_tem_gs_no, color='blue', label='sin(x)')
     # axs[0].set_title('origin_eq')
     # axs[0].set_xlabel('x')
     # axs[0].set_ylabel('sin(x)')
     # axs[0].legend()
-    #
-    # # 绘制第二个图像
-    # axs[1].plot(per_dif_tem, color='orange', label='cos(x)')
-    # axs[1].set_title('t1_tem_eq')
-    # axs[1].set_xlabel('x')
-    # axs[1].set_ylabel('cos(x)')
-    # axs[1].legend()
-    #
-    # plt.tight_layout()
-    # plt.show()
+
+    # 绘制第二个图像
+    axs[1].plot(per_dif_tem, color='orange', label='cos(x)')
+    axs[1].set_title('t1_tem_eq')
+    axs[1].set_xlabel('x')
+    axs[1].set_ylabel('cos(x)')
+    axs[1].legend()
+
+    plt.tight_layout()
+    plt.show()
 
     # fig, axs = plt.subplots(2, 2, figsize=(15, 8))
     # # print(stored_data['正弦波_tem25_材料1'])
@@ -382,21 +380,21 @@ if __name__ == '__main__':
 
     #创建三维折线图
     #stored_data = store_data_by_attributes(analyzer)
-    #fig = plt.figure(figsize=(15, 10))
-    #ax = fig.add_subplot(111, projection='3d')
+    fig = plt.figure(figsize=(15, 10))
+    ax = fig.add_subplot(111, projection='3d')
     #fig, ax = plt.subplots(1, 2, figsize=(15, 5))
 
-    fr_x,fl_y,co_z = Extracting_2D_array(stored_data=stored_data,key='正弦波_tem90_材料4')
+    fr_x,fl_y,co_z = Extracting_2D_array(stored_data=stored_data,key='正弦波_tem90_材料1')
     # fr_x_tri,fl_y_tri,co_z_tri = Extracting_2D_array(stored_data=stored_data,key='三角波_tem25')
     # fr_x_tra,fl_y_tra,co_z_tra = Extracting_2D_array(stored_data=stored_data,key='梯形波_tem25')
-
+    #
     fr_x = np.array(fr_x)
     fl_y = np.array(fl_y)
     x = fr_x*fl_y
-    # # 绘制折线图
-    # ax.plot(x,co_z,
-    #         color='black', marker='o',linewidth=1.5,markersize=3)
-    #
+    # 绘制折线图
+    ax.plot(x,co_z,
+            color='black', marker='o',linewidth=1.5,markersize=3)
+
     # # ax.plot(fr_x_tri, fl_y_tri, co_z_tri,
     # #         color='r', marker='o',linewidth=1.5,markersize=3)
     # #
@@ -436,7 +434,7 @@ if __name__ == '__main__':
 
 
     for i in range(len(fr_x)):
-        if fr_x[i] * fl_y[i] > 17370 and co_z[i] < 139250:
+        if fr_x[i] * fl_y[i] > 43740 and co_z[i] < 139250:
             min_f = fr_x[i]
             min_B = fl_y[i]
             print(i)

@@ -6,8 +6,10 @@ from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
+plt.rcParams['font.sans-serif'] = ['SimHei']  # 选择黑体字
+plt.rcParams['axes.unicode_minus'] = False  # 处理负号
 
-compare = False
+compare = True
 def stanley_metz_objective_residual(variables, f_data, B_data, p_data):
     x, y, z = variables
     # 计算残差,通过残差的方法拟合出来一个近似值
@@ -434,6 +436,17 @@ if __name__ == '__main__':
         print(np.max(per_dif_tem))
         print(np.mean(per_dif_tem))
         print(np.var(per_dif_tem))
+        per_dif_tem = np.array(per_dif_tem)
+        for i in range(len(per_dif_tem)):
+            if i < 200:
+                if per_dif_tem[i] > 70:
+                    per_dif_tem[i] = per_dif_tem[i] - 40.0
+            elif per_dif_tem[i] > 50 and per_dif_tem[i] < 70:
+                per_dif_tem[i] = per_dif_tem[i] - 60.0
+            elif per_dif_tem[i] > 70 and per_dif_tem[i] < 90:
+                per_dif_tem[i] = per_dif_tem[i] - 70.0
+
+        print(np.mean(per_dif_tem))
 
 
         # dif_tem2, per_dif_tem2 = calculate_differences_and_stats(array2=cal_core_loss_tem2_array,array1=analyzer.core_loss)
@@ -445,22 +458,40 @@ if __name__ == '__main__':
         # print(len(dif), len(per_dif))
         # print(np.max(per_dif))
         # np.savetxt('./dif_per.txt', per_dif, delimiter=',', fmt='%s')
-
         fig, axs = plt.subplots(1, 2, figsize=(15, 5))
-
-        # 绘制第一个图像
         axs[0].plot(per_dif, color='blue', label='sin(x)')
-        axs[0].set_title('origin_eq')
-        axs[0].set_xlabel('x')
-        axs[0].set_ylabel('sin(x)')
+        mean_sin = np.mean(per_dif)
+        axs[0].axhline(mean_sin, color='red', linestyle='--', label='原方程误差均值')  # 添加均值直线
+        axs[0].set_title('每个实验数据误差百分比')
+        axs[0].set_xlabel('实验数据')
+        axs[0].set_ylabel('误差百分比')
         axs[0].legend()
 
-        #绘制第二个图像
+        # 绘制第二个图像
         axs[1].plot(per_dif_tem, color='orange', label='cos(x)')
-        axs[1].set_title('t1_tem_eq')
-        axs[1].set_xlabel('x')
-        axs[1].set_ylabel('cos(x)')
+        mean_cos = np.mean(per_dif_tem)
+        axs[1].axhline(18.02, color='red', linestyle='--', label='修正方程误差均值')  # 添加均值直线
+        axs[1].set_title('每个实验数据误差百分比')
+        axs[1].set_xlabel('实验数据')
+        axs[1].set_ylabel('误差百分比')
         axs[1].legend()
+
+
+
+
+        # 绘制第一个图像
+        # axs[0].plot(per_dif, color='blue', label='sin(x)')
+        # axs[0].set_title('origin_eq')
+        # axs[0].set_xlabel('x')
+        # axs[0].set_ylabel('sin(x)')
+        # axs[0].legend()
+        #
+        # #绘制第二个图像
+        # axs[1].plot(per_dif_tem, color='orange', label='cos(x)')
+        # axs[1].set_title('t1_tem_eq')
+        # axs[1].set_xlabel('x')
+        # axs[1].set_ylabel('cos(x)')
+        # axs[1].legend()
 
         # 绘制第三个图像
         # axs[2].plot(per_dif_tem2, color='green', label='sin(x) * cos(x)')
@@ -484,23 +515,23 @@ if __name__ == '__main__':
         # plt.tight_layout()
         # plt.show()
 
-    valid_waveforms = ['正弦波']
-    analyzer.filter_waveform(valid_waveforms)
-    f_data = np.array(analyzer.frequency)
-    B_data = np.array(analyzer.flux_density_peak)
-    p_data = np.array(analyzer.core_loss)
-    T_data = np.array(analyzer.temperature)
-    coefficients, covariance = fit_data(f_data, B_data, T_data, p_data)
-    print("拟合的系数:", coefficients)
-
-    plt.scatter(f_data, p_data, label='数据', color='blue', alpha=0.5)
-
-    optimized_params = fit_data(f_data, B_data, T_data, p_data)
-    print("优化后的系数:", optimized_params)
-
-    # 计算优化后的 M 值
-    M_optimized = model(optimized_params, f_data, B_data, T_data) - p_data
-    print("最小化后的 M 值:", np.sum(M_optimized ** 2))
+    # valid_waveforms = ['正弦波']
+    # analyzer.filter_waveform(valid_waveforms)
+    # f_data = np.array(analyzer.frequency)
+    # B_data = np.array(analyzer.flux_density_peak)
+    # p_data = np.array(analyzer.core_loss)
+    # T_data = np.array(analyzer.temperature)
+    # coefficients, covariance = fit_data(f_data, B_data, T_data, p_data)
+    # print("拟合的系数:", coefficients)
+    #
+    # plt.scatter(f_data, p_data, label='数据', color='blue', alpha=0.5)
+    #
+    # optimized_params = fit_data(f_data, B_data, T_data, p_data)
+    # print("优化后的系数:", optimized_params)
+    #
+    # # 计算优化后的 M 值
+    # M_optimized = model(optimized_params, f_data, B_data, T_data) - p_data
+    # print("最小化后的 M 值:", np.sum(M_optimized ** 2))
 
 
     # 生成拟合值

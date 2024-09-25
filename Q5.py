@@ -184,9 +184,9 @@ if __name__ == '__main__':
     # analyzer.filter_temperature(valid_temperatures)
     #print(np.max(analyzer.frequency))
 
-    encoded_temperatures = analyzer.target_encoding_tem()
-    encoded_wave = analyzer.target_encoding_wave()
-    encoded_material = analyzer.target_encoding_material()
+    # encoded_temperatures = analyzer.target_encoding_tem()
+    # encoded_wave = analyzer.target_encoding_wave()
+    # encoded_material = analyzer.target_encoding_material()
     # print(set(encoded_material))
     # print(set(encoded_wave))
     # print(set(encoded_temperatures))
@@ -201,20 +201,43 @@ if __name__ == '__main__':
                                         encoded_wave=encoded_wave,
                                         encoded_material=encoded_material,
                                         core_loss=analyzer.core_loss,
-                                      encoded_frequency=analyzer.frequency,
-                                      flux_peak=analyzer.flux_density_peak)
+                                        encoded_frequency=analyzer.frequency,
+                                        flux_peak=analyzer.flux_density_peak)
         #
         # 输出结果
         a0, a1, a2, a3, a12, a13, a23 ,a123= coeffs
         print(f"Coefficients:\na0={a0}\na1={a1}\na2={a2}\na3={a3}\na12={a12}\na13={a13}\na23={a23}\na123={a123}\n")
 
 
+    temperature_map = {
+        25: 236659,
+        50: 202175,
+        70: 178606,
+        90: 175966,
+    }
+    waveform_map = {
+        '正弦波': 87594,
+        '三角波': 246819,
+        '梯形波': 262200,
+    }
+    material_map = {
+        '材料1': 179886,
+        '材料2': 234317,
+        '材料3': 264453,
+        '材料4': 109469,
+    }
 
-    P_cal = custom_model(W=encoded_wave,
+    analyzer.modify_temperatures(temperature_map)
+    analyzer.modify_waveform(waveform_map)
+    analyzer.modify_material(material_map)
+
+
+
+    P_cal = custom_model(W=analyzer.waveform_type,
                          F=analyzer.frequency,
                          B=analyzer.flux_density_peak,
-                         T=encoded_temperatures,
-                         M=encoded_material,
+                         T=analyzer.temperature,
+                         M=analyzer.material,
                         a0=0.002539227305716865,
                         a1=0.0014445108854908575,
                         a2=-1.007350084588356,
@@ -225,12 +248,11 @@ if __name__ == '__main__':
                         a7=1.2344098617520405,
                         a8=10065457.42370792)
 
+    # np.savetxt('output.txt', P_cal, delimiter=',', fmt='%.1f', header='core_loss', comments='')
 
-    dif_tem, per_dif_tem = calculate_differences_and_stats(array2=P_cal,array1=analyzer.core_loss)
-    print(len(dif_tem), len(per_dif_tem))
-    print(np.max(per_dif_tem))
-    print(np.mean(per_dif_tem))
-    print(np.var(per_dif_tem))
-
-
+    # dif_tem, per_dif_tem = calculate_differences_and_stats(array2=P_cal,array1=analyzer.core_loss)
+    # print(len(dif_tem), len(per_dif_tem))
+    # print(np.max(per_dif_tem))
+    # print(np.mean(per_dif_tem))
+    # print(np.var(per_dif_tem))
 
